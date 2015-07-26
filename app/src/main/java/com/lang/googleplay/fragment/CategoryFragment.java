@@ -8,15 +8,20 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.lang.googleplay.view.LoadingPage;
+
 /**
  * Created by Lang on 2015/7/23.
  */
-public class CategoryFragment extends Fragment {
-    @Nullable
+public class CategoryFragment extends BaseFragment {
+
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        TextView textView = new TextView(getActivity());
-        textView.setText("我是CategoryFragment");
-        return textView;
+    public LoadingPage.LoadResult load() {
+        return LoadingPage.LoadResult.error;
+    }
+
+    @Override
+    public View createSuccessView() {
+        return null;
     }
 }

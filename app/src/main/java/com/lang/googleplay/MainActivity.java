@@ -1,32 +1,22 @@
 package com.lang.googleplay;
 
-import android.content.Intent;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
-import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.PagerTabStrip;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
-import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
-import com.lang.googleplay.Utils.UiUtils;
-import com.lang.googleplay.fragment.AppFragment;
-import com.lang.googleplay.fragment.CategoryFragment;
+import com.lang.googleplay.utils.UiUtils;
+import com.lang.googleplay.fragment.BaseFragment;
 import com.lang.googleplay.fragment.FragmentFactory;
-import com.lang.googleplay.fragment.GameFragment;
-import com.lang.googleplay.fragment.HomeFragment;
-import com.lang.googleplay.fragment.SubjectFragment;
-import com.lang.googleplay.fragment.TopFragment;
 
 
 public class MainActivity extends BaseActivity implements SearchView.OnQueryTextListener {
@@ -54,6 +44,14 @@ public class MainActivity extends BaseActivity implements SearchView.OnQueryText
         pager_tab_strip.setTabIndicatorColor(getResources().getColor(R.color.indicatorcolor));
 
         mViewPager.setAdapter(new MainAdapter(getSupportFragmentManager()));
+        mViewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener(){
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                BaseFragment fragment = FragmentFactory.createFragment(position);
+                fragment.show();
+            }
+        });
     }
 
     @Override

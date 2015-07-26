@@ -1,179 +1,117 @@
 package com.lang.googleplay.fragment;
 
+import android.media.Rating;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
-import android.view.LayoutInflater;
+import android.text.format.Formatter;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.FrameLayout;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
+import android.widget.ListAdapter;
+import android.widget.ListView;
+import android.widget.NumberPicker;
+import android.widget.RatingBar;
 import android.widget.TextView;
 
 import com.lang.googleplay.R;
-import com.lang.googleplay.Utils.ViewUtils;
+import com.lang.googleplay.bean.AppInfo;
+import com.lang.googleplay.http.HttpHelper;
+import com.lang.googleplay.protocol.HomeProtocol;
+import com.lang.googleplay.utils.BitmapHelper;
+import com.lang.googleplay.utils.UiUtils;
+import com.lang.googleplay.view.BaseListView;
+import com.lang.googleplay.view.LoadingPage;
+import com.lidroid.xutils.BitmapUtils;
+import com.lidroid.xutils.bitmap.PauseOnScrollListener;
+
+import java.util.List;
 
 /**
  * Created by Lang on 2015/7/23.
  */
-public class HomeFragment extends Fragment {
+public class HomeFragment extends BaseFragment {
 
-    public static final int STATE_UNKOWN = 0;
-    public static final int STATE_LOADING = 1;
-    public static final int STATE_ERROR = 2;
-    public static final int STATE_EMPTY = 3;
-    public static final int STATE_SUCCESS = 4;
-
-    private static int state = STATE_UNKOWN;
+    private List<AppInfo> datas;
 
 
-    private FrameLayout frameLayout;
-
-    @Nullable
+    // 当Fragment挂载的Activity创建时候调用
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // frameLayout复用
-        if(frameLayout == null) {
-            frameLayout = new FrameLayout(getActivity());
-            init();
-        } else {
-            ViewUtils.removeParent(frameLayout);
-        }
-
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
         show();
-
-        return frameLayout;
     }
 
-    private View loadingView;   // 加载中的界面
-    private View errorView; // 错误界面
-    private View emptyView; // 空界面
-    private View successView;   // 成功界面
 
-    /**
-     * 在FrameLayout中添加4种不同的界面
-     */
-    private void init() {
-        loadingView = createLoadingView();  // 创建了加载中的界面
-        if(loadingView != null){
-            frameLayout.addView(loadingView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-        }
+    public LoadingPage.LoadResult load() {
+        HomeProtocol protocol = new HomeProtocol();
+        datas = protocol.load(0);
+        return checkData(datas);
 
-        errorView = createErrorView();  // 创建了错误的界面
-        if(errorView != null){
-            frameLayout.addView(errorView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-        }
-
-        emptyView = createEmptyView();  // 创建了空的界面
-        if(emptyView != null){
-            frameLayout.addView(emptyView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-        }
-        showPage();
     }
 
-    private enum LoadResult{
-        error(2), empty(3), success(4);
 
-        int value;
 
-        LoadResult(int value) {
-            this.value = value;
-        }
-
-        public int getValue() {
-            return value;
-        }
+    public View createSuccessView() {
+        BaseListView listView = new BaseListView(UiUtils.getContext());
+        listView.setAdapter(new HomeAdapter());
+        // 第二个参数 慢慢滑动的时候是否加载图片false 加载 true 不加载
+        // 第三个参数 快速滑动的时候是否加载图片false 加载 true 不加载
+        listView.setOnScrollListener(new PauseOnScrollListener(bitmapUtils, false, true));
+        bitmapUtils.configDefaultLoadingImage(R.mipmap.ic_default); // 设置加载时的图片
+        bitmapUtils.configDefaultLoadFailedImage(R.mipmap.ic_default);  // 加载失败时的图片
+        return listView;
     }
 
-    /**
-     * 根据服务器的数据切换状态
-     */
-    private void show() {
-        if(state == STATE_ERROR | state == STATE_EMPTY){
-            state = STATE_UNKOWN;
-        }
-        // 请求服务器 获取服务器上的数据 进行判断
-        // 请求服务器 返回一个结果
-        new Thread(){
-            @Override
-            public void run() {
-                super.run();
-                SystemClock.sleep(2000);
-                final LoadResult result = load();
-                if(getActivity() != null) {
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (result != null) {
-                                state = result.getValue();
 
-                                showPage(); // 状态改变了，重新判断当前应该显示哪个界面
-                            }
-                        }
-                    });
-                }
+    private class HomeAdapter extends BaseAdapter {
+        @Override
+        public int getCount() {
+            return datas.size();
+        }
+
+        @Override
+        public AppInfo getItem(int position) {
+            return datas.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            ViewHolder holder;
+            View view;
+            if(convertView == null){
+                view = View.inflate(UiUtils.getContext(), R.layout.item_app, null);
+                holder = new ViewHolder();
+                holder.item_title = (TextView) view.findViewById(R.id.item_title);
+                holder.item_size = (TextView) view.findViewById(R.id.item_size);
+                holder.item_bottom = (TextView) view.findViewById(R.id.item_bottom);
+                holder.item_icon = (ImageView) view.findViewById(R.id.item_icon);
+                holder.item_rating = (RatingBar) view.findViewById(R.id.item_rating);
+                view.setTag(holder);
+            } else {
+                view = convertView;
+                holder = (ViewHolder) view.getTag();
             }
-        }.start();
+            AppInfo item = getItem(position);
+            holder.item_title.setText(item.getName());
+            holder.item_size.setText(Formatter.formatFileSize(UiUtils.getContext(), item.getSize()));
+            holder.item_bottom.setText(item.getDes());
+            holder.item_rating.setRating(item.getStars());
+            String iconUrl = item.getIconUrl();
+            bitmapUtils.display(holder.item_icon, HttpHelper.URL + "image?name=" + iconUrl);
 
-        showPage();
-    }
-
-    private LoadResult load() {
-        return LoadResult.success;
-    }
-
-    /**
-     * 根据不同的状态显示不同的界面
-     */
-    private void showPage() {
-        if(loadingView != null) {
-            loadingView.setVisibility(state == STATE_UNKOWN | state == STATE_LOADING ? View.VISIBLE : View.INVISIBLE);
-        }
-        if(errorView != null){
-            errorView.setVisibility(state == STATE_ERROR ? View.VISIBLE : View.INVISIBLE);
-        }
-        if(emptyView != null){
-            emptyView.setVisibility(state == STATE_EMPTY ? View.VISIBLE : View.INVISIBLE);
-        }
-        if(state == STATE_SUCCESS){
-            successView = createSuccessView();
-            if(successView != null){
-                frameLayout.addView(successView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-            }
+            return view;
         }
     }
 
-    private View createSuccessView() {
-        TextView textView = new TextView(getActivity());
-        textView.setText("加载成功了。。。");
-        textView.setTextSize(30);
-        return textView;
+    private static class ViewHolder{
+        ImageView item_icon;
+        TextView item_title, item_size, item_bottom;
+        RatingBar item_rating;
     }
-
-    private View createEmptyView() {
-        View view = View.inflate(getActivity(), R.layout.loadpage_empty, null);
-        return view;
-    }
-
-    private View createErrorView() {
-        View view = View.inflate(getActivity(), R.layout.loadpage_error, null);
-        Button page_bt = (Button) view.findViewById(R.id.page_bt);
-        page_bt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                show();
-            }
-        });
-        return view;
-    }
-
-    private View createLoadingView() {
-        View view = View.inflate(getActivity(), R.layout.loadpage_loading, null);
-        return view;
-    }
-
-
-
-
 }

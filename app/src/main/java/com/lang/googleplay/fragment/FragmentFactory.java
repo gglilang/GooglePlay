@@ -10,10 +10,10 @@ import java.util.Map;
  */
 public class FragmentFactory {
 
-    private static Map<Integer, Fragment> mFragments = new HashMap<>();
+    private static Map<Integer, BaseFragment> mFragments = new HashMap<>();
 
-    public static Fragment createFragment(int position){
-        Fragment fragment = mFragments.get(position);
+    public static BaseFragment createFragment(int position){
+        BaseFragment fragment = mFragments.get(position);
         if(fragment == null) {
             if (position == 0) {
                 fragment = new HomeFragment();
