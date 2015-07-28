@@ -1,5 +1,7 @@
 package com.lang.googleplay.protocol;
 
+import android.os.SystemClock;
+
 import com.lang.googleplay.http.HttpHelper;
 import com.lang.googleplay.utils.FileUtils;
 import com.lang.googleplay.utils.IOUtils;
@@ -16,6 +18,7 @@ import java.io.StringWriter;
  */
 public abstract class BaseProtocol<T> {
     public T load(int index) {
+        SystemClock.sleep(1000);
         // 请求服务器
         String json = loadLocal(index);
         if (json == null) {

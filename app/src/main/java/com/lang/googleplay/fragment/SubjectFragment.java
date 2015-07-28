@@ -1,21 +1,19 @@
 package com.lang.googleplay.fragment;
 
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.TextView;
 
+import com.lang.googleplay.adapter.DefaultAdapter;
 import com.lang.googleplay.R;
 import com.lang.googleplay.bean.SubjectInfo;
+import com.lang.googleplay.holder.BaseHolder;
 import com.lang.googleplay.http.HttpHelper;
 import com.lang.googleplay.protocol.SubjectProtocol;
 import com.lang.googleplay.utils.UiUtils;
 import com.lang.googleplay.view.BaseListView;
 import com.lang.googleplay.view.LoadingPage;
 
-import java.security.PrivateKey;
 import java.util.List;
 
 /**
@@ -35,52 +33,47 @@ public class SubjectFragment extends BaseFragment {
     @Override
     public View createSuccessView() {
         BaseListView listView = new BaseListView(getActivity());
-        listView.setAdapter(new SubjectAdapter());
+        listView.setAdapter(new SubjectAdapter(datas));
         return listView;
     }
 
-    private class SubjectAdapter extends BaseAdapter {
-        @Override
-        public int getCount() {
-            return datas.size();
+    private class SubjectAdapter extends DefaultAdapter<SubjectInfo> {
+        public SubjectAdapter(List<SubjectInfo> datas) {
+            super(datas);
         }
 
         @Override
-        public SubjectInfo getItem(int position) {
-            return datas.get(position);
+        public BaseHolder getHolder() {
+            return new SubjectHolder();
         }
 
         @Override
-        public long getItemId(int position) {
-            return position;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            View view;
-            ViewHolder holder;
-            if(convertView == null){
-                view = UiUtils.inflate(R.layout.item_subject);
-                holder = new ViewHolder();
-                holder.item_txt = (TextView) view.findViewById(R.id.item_txt);
-                holder.item_icon = (ImageView) view.findViewById(R.id.item_icon);
-                view.setTag(holder);
-            } else {
-                view = convertView;
-                holder = (ViewHolder) view.getTag();
-            }
-
-            String txt = getItem(position).getDes();
-            String url = getItem(position).getUrl();
-
-            holder.item_txt.setText(txt);
-            bitmapUtils.display(holder.item_icon, HttpHelper.URL + "image?name=" + url);
-            return view;
+        protected List<SubjectInfo> onLoad() {
+            SubjectProtocol protocol = new SubjectProtocol();
+            List<SubjectInfo> load = protocol.load(datas.size());
+            datas.addAll(load);
+            return load;
         }
     }
 
-    private static class ViewHolder{
+    private static class SubjectHolder extends BaseHolder<SubjectInfo>{
         ImageView item_icon;
         TextView item_txt;
+        private View contentView;
+        @Override
+        public View initView() {
+            contentView = UiUtils.inflate(R.layout.item_subject);
+            this.item_txt = (TextView) contentView.findViewById(R.id.item_txt);
+            this.item_icon = (ImageView) contentView.findViewById(R.id.item_icon);
+            return contentView;
+        }
+
+        public void refreshView(SubjectInfo data){
+            String txt = data.getDes();
+            String url = data.getUrl();
+
+            this.item_txt.setText(txt);
+            bitmapUtils.display(this.item_icon, HttpHelper.URL + "image?name=" + url);
+        }
     }
 }
